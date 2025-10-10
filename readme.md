@@ -1,10 +1,10 @@
-# Halloween Costume Contest - Setup Instructions
+# Halloween Costume Contest - Setup Instructions (Apps Script Version)
 
 ## Files You Have
 1. **index.html** - Main voting page (for guests)
 2. **admin.html** - Admin results page (password-protected)
 
-## Google Sheets API Setup (10 minutes)
+## Google Apps Script Setup (10 minutes)
 
 ### Step 1: Create a Google Sheet
 1. Go to [Google Sheets](https://sheets.google.com)
@@ -15,55 +15,102 @@
    - B1: `Funniest`
    - C1: `Most Creative`
    - D1: `Least Effort`
-5. Rename the sheet tab at the bottom to `Votes` (important!)
-6. Copy the **Sheet ID** from the URL. It's the long string between `/d/` and `/edit`:
-   ```
-   https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID_HERE/edit
-   ```
 
-### Step 2: Create Google Cloud Project & API Key
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project (or use an existing one)
-3. Click "Enable APIs and Services"
-4. Search for "Google Sheets API" and enable it
-5. Go to "Credentials" in the left sidebar
-6. Click "Create Credentials" → "API Key"
-7. Copy your API key
-8. **IMPORTANT:** Click "Edit API key" and restrict it:
-   - Under "API restrictions", select "Restrict key"
-   - Select only "Google Sheets API"
-   - Under "Website restrictions", add your GitHub Pages URL (optional but recommended)
-9. Save
+### Step 2: Create the Apps Script
+1. In your Google Sheet, go to **Extensions** → **Apps Script**
+2. Delete any code in the editor
+3. Copy and paste this entire script:
 
-### Step 3: Make Sheet Writable by API
-1. Go back to your Google Sheet
-2. Click the "Share" button (top right)
-3. Click "Change to anyone with the link"
-4. Set permission to "Editor"
-5. Click "Done"
-
-**Note:** This makes your sheet publicly editable via the API, but only people with the API key can write to it. Don't share your API key!
-
-## Configure Your Files
-
-### In `index.html`:
-Find these lines near the top of the `<script>` section (around line 145):
 ```javascript
-const API_KEY = 'YOUR_GOOGLE_API_KEY_HERE';
-const SHEET_ID = 'YOUR_GOOGLE_SHEET_ID_HERE';
-```
-Replace with your actual values.
+function doPost(e) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    const data = JSON.parse(e.postData.contents);
+    
+    const timestamp = new Date();
+    const funniest = data.funniest || '';
+    const creative = data.creative || '';
+    const leastEffort = data.leastEffort || '';
+    
+    sheet.appendRow([timestamp, funniest, creative, leastEffort]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success'
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
 
-### In `admin.html`:
-Find these lines near the top of the `<script>` section (around line 185):
+function doGet(e) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    const data = sheet.getDataRange().getValues();
+    
+    // Skip header row
+    const votes = data.slice(1).map(row => ({
+      timestamp: row[0],
+      funniest: row[1],
+      creative: row[2],
+      leastEffort: row[3]
+    }));
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
+      votes: votes
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+```
+
+4. Click **Save** (disk icon)
+5. Name your project something like "Halloween Vote Handler"
+
+### Step 3: Deploy as Web App
+1. Click **Deploy** → **New deployment**
+2. Click the gear icon ⚙️ next to "Select type"
+3. Choose **Web app**
+4. Fill in the settings:
+   - **Description**: "Halloween voting system"
+   - **Execute as**: **Me** (your email)
+   - **Who has access**: **Anyone** (important!)
+5. Click **Deploy**
+6. Click **Authorize access**
+7. Choose your Google account
+8. Click **Advanced** → **Go to [your project name] (unsafe)**
+9. Click **Allow**
+10. **Copy the Web app URL** - it will look like:
+    ```
+    https://script.google.com/macros/s/AKfycby.../exec
+    ```
+11. Click **Done**
+
+### Step 4: Configure Your HTML Files
+
+#### In `index.html`:
+Find this line near the top of the `<script>` section:
+```javascript
+const SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+```
+Replace with your actual Web app URL from Step 3.
+
+#### In `admin.html`:
+Find these lines near the top of the `<script>` section:
 ```javascript
 const ADMIN_PASSWORD = 'admin123';
-const API_KEY = 'YOUR_GOOGLE_API_KEY_HERE';
-const SHEET_ID = 'YOUR_GOOGLE_SHEET_ID_HERE';
+const SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
 ```
 Replace:
 - `admin123` with your desired admin password
-- The API key and Sheet ID with your actual values
+- The SCRIPT_URL with your actual Web app URL
 
 ## Deploy to GitHub Pages
 
@@ -90,64 +137,87 @@ Then enable GitHub Pages in repository settings.
 
 ## Testing
 
-1. **Test voting**: Open `index.html` (or your GitHub Pages URL)
-   - Fill out all three categories
-   - Submit the form
-   - Check your Google Sheet - you should see a new row!
-   - Try voting again - it should say you already voted
+### Test 1: Submit a vote
+1. Open `index.html` (or your GitHub Pages URL)
+2. Fill out all three categories
+3. Click Submit
+4. Check your Google Sheet - you should see a new row with timestamp and votes!
+5. Try voting again - it should say you already voted
 
-2. **Test admin**: Open `admin.html`
-   - Enter your admin password
-   - You should see the results tallied by category
-
-## How It Works
-
-**For Voters:**
-- They visit your site, enter three costume names (one per category)
-- When they click Submit, the votes are sent to your Google Sheet
-- Their browser remembers they voted (via localStorage)
-- They can't vote again unless they use private/incognito mode
-
-**For You (Admin):**
-- Visit `/admin.html`, enter your password
-- See all votes tallied and sorted by count
-- Click refresh to see live updates
-- The data stays in your Google Sheet for your records
-
-## Privacy & Security Notes
-
-- ✅ Voters never see results
-- ✅ API key is restricted to Sheets API only
-- ✅ Admin page is password-protected
-- ⚠️ Anyone with API key could technically write to your sheet (don't share it!)
-- ⚠️ Voters can bypass the duplicate-vote check with private browsing (honor system)
-- ⚠️ Google Sheet is publicly editable but requires the API key
+### Test 2: View admin results
+1. Open `admin.html`
+2. Enter your admin password
+3. You should see the votes tallied by category
+4. Click refresh to see live updates
 
 ## Troubleshooting
 
-**"Failed to submit vote"**
-- Check that your API key is correct
-- Verify the Sheet ID is correct
-- Make sure the sheet is set to "Anyone with link can edit"
-- Check browser console (F12) for detailed errors
+### "Error submitting vote"
+**Check the browser console (F12 → Console tab) for errors:**
 
-**"Failed to fetch data" on admin page**
-- Same as above
-- Also verify the sheet tab is named exactly `Votes`
+- **"Failed to fetch"** or **CORS error**: 
+  - Make sure you deployed the Apps Script as "Anyone" can access
+  - Try redeploying: Deploy → Manage deployments → Edit → New version → Deploy
 
-**Votes aren't showing up**
-- Check your Google Sheet directly
-- Make sure column headers match exactly (case-sensitive)
+- **No error but votes don't appear**:
+  - Check your Google Sheet directly
+  - Make sure the Apps Script is saved
+  - Verify the Web app URL is correct (it should end with `/exec`)
 
-**Admin password not working**
-- Check that you changed it in `admin.html`
+### "Error loading results" on admin page
+- Same troubleshooting as above
+- Verify the sheet has the correct column headers
+- Check browser console for specific error messages
+
+### Admin password not working
 - Password is case-sensitive
+- Make sure you changed it in `admin.html` and saved the file
+- Clear your browser cache
 
-## Tips
+### Votes appearing with wrong data
+- Make sure your sheet columns are in the correct order:
+  - Column A: Timestamp
+  - Column B: Funniest
+  - Column C: Most Creative  
+  - Column D: Least Effort
 
-- Share only the main voting URL with guests (not the admin.html URL)
-- Check the Google Sheet periodically to see votes coming in
-- After the contest, you can download the sheet as a CSV for records
-- You can close voting by taking the site down or modifying the code
+## Important Notes
+
+✅ **Much more secure** than API keys - your script controls access  
+✅ **Free forever** - Apps Script has generous free quotas  
+✅ **No API keys to leak** - the script URL can only read/write to your sheet  
+⚠️ Anyone with the script URL can submit votes (but that's the point!)  
+⚠️ Duplicate vote prevention still relies on browser localStorage (honor system)
+
+## Making Updates After Deployment
+
+If you need to change the Apps Script code:
+1. Edit the code in the Apps Script editor
+2. Save it
+3. Go to **Deploy** → **Manage deployments**
+4. Click the pencil icon ✏️ to edit
+5. Change "Version" to **New version**
+6. Click **Deploy**
+7. The URL stays the same, but your changes are live!
+
+## After the Event
+
+**To close voting:**
+1. Go to your Apps Script
+2. Go to **Deploy** → **Manage deployments**  
+3. Click **Archive** next to your deployment
+4. Or just take down your GitHub Pages site
+
+**To download results:**
+- Your votes are in the Google Sheet
+- File → Download → CSV or Excel
+
+## Security Notes
+
+- ✅ Your Apps Script runs with YOUR permissions
+- ✅ Only reads/writes to the specific sheet you created it in
+- ✅ Can't access your other Google Drive files
+- ✅ The script URL is hard to guess (long random string)
+- ✅ Even if someone finds it, they can only submit votes or read results (which is fine!)
 
 Good luck with your Halloween contest! 🎃
