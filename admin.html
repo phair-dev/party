@@ -204,13 +204,8 @@
         // TODO: Replace with your actual admin password
         const ADMIN_PASSWORD = 'admin123';
         
-        // TODO: Replace with your actual Google Sheets API key
-        const API_KEY = 'AIzaSyDDeQK1JQSRIaa14xHxS1KZb_WDdOD6h28';
-        
-        // TODO: Replace with your Google Sheet ID
-        const SHEET_ID = '1RtYiVsrTJfw5UBUpYP26pVnz90OQJRoQUo';
-        
-        const SHEET_NAME = 'Votes';
+        // TODO: Replace with your Google Apps Script Web App URL
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMSaSilJoDagfDWdMTDGsfYZyIxD5fVjc0ItgDQ58qIGtsyJlVh6b2EC9U7zi1_gLa/exec';
         // ======================================================
 
         // Check login
@@ -227,7 +222,7 @@
             }
         });
 
-        // Load results from Google Sheets
+        // Load results from Google Apps Script
         async function loadResults() {
             const loadingMsg = document.getElementById('loadingMessage');
             const resultsContent = document.getElementById('resultsContent');
@@ -236,7 +231,7 @@
             resultsContent.innerHTML = '';
 
             try {
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A:D?key=${API_KEY}`;
+                const url = `${SCRIPT_URL}?action=getResults`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -244,16 +239,14 @@
                 }
 
                 const data = await response.json();
-                const rows = data.values || [];
 
-                if (rows.length <= 1) {
+                if (!data.votes || data.votes.length === 0) {
                     resultsContent.innerHTML = '<p style="text-align: center; color: #ccc; padding: 40px;">No votes yet!</p>';
                     loadingMsg.style.display = 'none';
                     return;
                 }
 
-                // Skip header row and process votes
-                const votes = rows.slice(1);
+                // Process votes
                 const categories = {
                     funniest: {},
                     creative: {},
@@ -261,16 +254,10 @@
                 };
 
                 // Count votes
-                votes.forEach(row => {
-                    if (row.length >= 4) {
-                        const funniest = row[1]?.trim();
-                        const creative = row[2]?.trim();
-                        const leastEffort = row[3]?.trim();
-
-                        if (funniest) categories.funniest[funniest] = (categories.funniest[funniest] || 0) + 1;
-                        if (creative) categories.creative[creative] = (categories.creative[creative] || 0) + 1;
-                        if (leastEffort) categories.leastEffort[leastEffort] = (categories.leastEffort[leastEffort] || 0) + 1;
-                    }
+                data.votes.forEach(vote => {
+                    if (vote.funniest) categories.funniest[vote.funniest] = (categories.funniest[vote.funniest] || 0) + 1;
+                    if (vote.creative) categories.creative[vote.creative] = (categories.creative[vote.creative] || 0) + 1;
+                    if (vote.leastEffort) categories.leastEffort[vote.leastEffort] = (categories.leastEffort[vote.leastEffort] || 0) + 1;
                 });
 
                 // Display results

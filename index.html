@@ -200,13 +200,8 @@
 
     <script>
         // ==================== CONFIGURATION ====================
-        // TODO: Replace with your actual Google Sheets API key
-        const API_KEY = 'AIzaSyDDeQK1JQSRIaa14xHxS1KZb_WDdOD6h28';
-        
-        // TODO: Replace with your Google Sheet ID (from the URL)
-        const SHEET_ID = '1RtYiVsrTJfw5UBUpYP26pVnz90OQJRoQUo-glRlJFnY';
-        
-        const SHEET_NAME = 'Votes'; // The name of the sheet tab
+        // TODO: Replace with your Google Apps Script Web App URL
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMSaSilJoDagfDWdMTDGsfYZyIxD5fVjc0ItgDQ58qIGtsyJlVh6b2EC9U7zi1_gLa/exec';
         // ======================================================
 
         // Check if user has already voted
@@ -235,28 +230,24 @@
             messageEl.style.display = 'block';
         }
 
-        // Submit vote to Google Sheets
+        // Submit vote to Google Apps Script
         async function submitVote(funniest, creative, leastEffort) {
-            const timestamp = new Date().toISOString();
-            const values = [[timestamp, funniest, creative, leastEffort]];
-
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A:D:append?valueInputOption=USER_ENTERED&key=${API_KEY}`;
-
-            const response = await fetch(url, {
+            const response = await fetch(SCRIPT_URL, {
                 method: 'POST',
+                mode: 'no-cors',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    values: values
+                    funniest: funniest,
+                    creative: creative,
+                    leastEffort: leastEffort
                 })
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to submit vote');
-            }
-
-            return response.json();
+            // Note: no-cors mode means we can't read the response,
+            // but the submission will still work
+            return true;
         }
 
         // Handle form submission
