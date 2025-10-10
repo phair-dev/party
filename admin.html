@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Contest Results</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .login-card {
+            max-width: 400px;
+            margin: 100px auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #ff6b35;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        h2 {
+            color: #ff6b35;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #ff6b35;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            color: #f44336;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        .results-container {
+            display: none;
+        }
+
+        .category-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .vote-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #ff6b35;
+        }
+
+        .vote-name {
+            font-size: 1.1em;
+            flex-grow: 1;
+        }
+
+        .vote-count {
+            background: #ff6b35;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .refresh-btn {
+            width: auto;
+            padding: 10px 20px;
+            font-size: 0.9em;
+        }
+
+        .total-votes {
+            color: #ccc;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #ccc;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-link a {
+            color: #ff6b35;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Login Form -->
+        <div class="login-card" id="loginCard">
+            <h1>🎃 Admin Login</h1>
+            <form id="loginForm">
+                <input type="password" id="password" placeholder="Enter admin password" required>
+                <button type="submit">Login</button>
+                <div class="error-message" id="errorMessage">Incorrect password</div>
+            </form>
+            <div class="back-link">
+                <a href="index.html">← Back to voting</a>
+            </div>
+        </div>
+
+        <!-- Results Container -->
+        <div class="results-container" id="resultsContainer">
+            <div class="header-bar">
+                <h1>Contest Results</h1>
+                <button class="refresh-btn" onclick="loadResults()">🔄 Refresh</button>
+            </div>
+
+            <div id="loadingMessage" class="loading">Loading results...</div>
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CONFIGURATION ====================
+        // TODO: Replace with your actual admin password
+        const ADMIN_PASSWORD = 'admin123';
+        
+        // TODO: Replace with your actual Google Sheets API key
+        const API_KEY = 'YOUR_GOOGLE_API_KEY_HERE';
+        
+        // TODO: Replace with your Google Sheet ID
+        const SHEET_ID = 'YOUR_GOOGLE_SHEET_ID_HERE';
+        
+        const SHEET_NAME = 'Votes';
+        // ======================================================
+
+        // Check login
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+            
+            if (password === ADMIN_PASSWORD) {
+                document.getElementById('loginCard').style.display = 'none';
+                document.getElementById('resultsContainer').style.display = 'block';
+                loadResults();
+            } else {
+                document.getElementById('errorMessage').style.display = 'block';
+            }
+        });
+
+        // Load results from Google Sheets
+        async function loadResults() {
+            const loadingMsg = document.getElementById('loadingMessage');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            loadingMsg.style.display = 'block';
+            resultsContent.innerHTML = '';
+
+            try {
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}!A:D?key=${API_KEY}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+
+                const data = await response.json();
+                const rows = data.values || [];
+
+                if (rows.length <= 1) {
+                    resultsContent.innerHTML = '<p style="text-align: center; color: #ccc; padding: 40px;">No votes yet!</p>';
+                    loadingMsg.style.display = 'none';
+                    return;
+                }
+
+                // Skip header row and process votes
+                const votes = rows.slice(1);
+                const categories = {
+                    funniest: {},
+                    creative: {},
+                    leastEffort: {}
+                };
+
+                // Count votes
+                votes.forEach(row => {
+                    if (row.length >= 4) {
+                        const funniest = row[1]?.trim();
+                        const creative = row[2]?.trim();
+                        const leastEffort = row[3]?.trim();
+
+                        if (funniest) categories.funniest[funniest] = (categories.funniest[funniest] || 0) + 1;
+                        if (creative) categories.creative[creative] = (categories.creative[creative] || 0) + 1;
+                        if (leastEffort) categories.leastEffort[leastEffort] = (categories.leastEffort[leastEffort] || 0) + 1;
+                    }
+                });
+
+                // Display results
+                displayCategory('Funniest Costume', categories.funniest);
+                displayCategory('Most Creative Costume', categories.creative);
+                displayCategory('Least Effort Costume', categories.leastEffort);
+
+                loadingMsg.style.display = 'none';
+            } catch (error) {
+                console.error('Error:', error);
+                resultsContent.innerHTML = '<p style="text-align: center; color: #f44336; padding: 40px;">Error loading results. Check console for details.</p>';
+                loadingMsg.style.display = 'none';
+            }
+        }
+
+        function displayCategory(title, votes) {
+            const resultsContent = document.getElementById('resultsContent');
+            
+            // Sort by vote count
+            const sorted = Object.entries(votes).sort((a, b) => b[1] - a[1]);
+            const totalVotes = sorted.reduce((sum, [_, count]) => sum + count, 0);
+
+            const section = document.createElement('div');
+            section.className = 'category-section';
+            
+            let html = `
+                <h2>${title}</h2>
+                <div class="total-votes">Total votes: ${totalVotes}</div>
+                <div style="margin-top: 20px;">
+            `;
+
+            if (sorted.length === 0) {
+                html += '<p style="color: #ccc;">No votes yet</p>';
+            } else {
+                sorted.forEach(([name, count]) => {
+                    html += `
+                        <div class="vote-item">
+                            <div class="vote-name">${name}</div>
+                            <div class="vote-count">${count}</div>
+                        </div>
+                    `;
+                });
+            }
+
+            html += '</div>';
+            section.innerHTML = html;
+            resultsContent.appendChild(section);
+        }
+    </script>
+</body>
+</html>
