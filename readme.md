@@ -43,6 +43,10 @@ Defined once in `src/config.ts`.
 
 ## Development
 
+**Local emulators** (needs Java, e.g. `brew install openjdk`): `npm run emulators` in one terminal,
+`npm run seed [voting|revealed]` to load sample couples and ballots, then `npm run dev:emulated`.
+`npm run test:rules` runs behavioural `firestore.rules` tests against the emulator.
+
 ```sh
 npm install
 npm run dev        # local dev server
