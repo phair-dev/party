@@ -78,63 +78,69 @@ export default function Winners() {
 
   return (
     <main className="stage" onClick={() => setStep((s) => Math.min(s + 1, SLIDES.length - 1))}>
-      {slide.kind === 'intro' && (
-        <>
-          <h1>🏆 The Winners 🏆</h1>
-          <p className="subtitle big">Ready?</p>
-        </>
-      )}
+      <div className="stage-body">
+        {slide.kind === 'intro' && (
+          <>
+            <h1>🏆 The Winners 🏆</h1>
+            <p className="subtitle big">Ready?</p>
+          </>
+        )}
 
-      {slide.kind === 'teaser' && (
-        <>
-          <p className="muted">And the award for…</p>
-          <h1 className="huge">{titleOf(slide.category).title}</h1>
-          <p className="subtitle big">{titleOf(slide.category).blurb}</p>
-        </>
-      )}
+        {slide.kind === 'teaser' && (
+          <>
+            <p className="muted">And the award for…</p>
+            <h1 className="huge">{titleOf(slide.category).title}</h1>
+            <p className="subtitle big">{titleOf(slide.category).blurb}</p>
+          </>
+        )}
 
-      {slide.kind === 'winner' && (
-        <section className="card winner">
-          <h2>{titleOf(slide.category).title}</h2>
-          <PodiumView p={podiumOf(slide.category)} />
-        </section>
-      )}
+        {slide.kind === 'winner' && (
+          <section className="card winner">
+            <h2>{titleOf(slide.category).title}</h2>
+            <PodiumView p={podiumOf(slide.category)} />
+          </section>
+        )}
 
-      {slide.kind === 'recap' && (
-        <>
-          <h1>🎃 Congratulations! 🎃</h1>
-          {REVEAL_ORDER.map((key) => {
-            const { winners } = podiumOf(key)
-            return (
-              <section className="card winner" key={key}>
-                <h2>{titleOf(key).title}</h2>
-                {winners.length === 0 && <p className="muted">No votes</p>}
-                {winners.map((w) => (
-                  <div className="option" key={w.couple.id}>
-                    <CoupleLabel couple={w.couple} />
-                  </div>
-                ))}
-              </section>
-            )
-          })}
-        </>
-      )}
+        {slide.kind === 'recap' && (
+          <>
+            <h1>🎃 Congratulations! 🎃</h1>
+            {REVEAL_ORDER.map((key) => {
+              const { winners } = podiumOf(key)
+              return (
+                <section className="card winner" key={key}>
+                  <h2>{titleOf(key).title}</h2>
+                  {winners.length === 0 && <p className="muted">No votes</p>}
+                  {winners.map((w) => (
+                    <div className="option" key={w.couple.id}>
+                      <CoupleLabel couple={w.couple} />
+                    </div>
+                  ))}
+                </section>
+              )
+            })}
+          </>
+        )}
 
-      <footer className="stage-nav" onClick={(e) => e.stopPropagation()}>
-        <div className="stage-nav-main">
+        <nav className="stage-nav" onClick={(e) => e.stopPropagation()}>
           <button disabled={step === 0} onClick={() => setStep((s) => Math.max(s - 1, 0))}>
             ← Back
           </button>
           <button disabled={last} onClick={() => setStep((s) => Math.min(s + 1, SLIDES.length - 1))}>
             Continue →
           </button>
-        </div>
-        {canFullscreen && (
-          <button className="small" onClick={toggleFullscreen}>
-            {fullscreen ? 'Exit full screen' : 'Full screen'}
-          </button>
-        )}
-      </footer>
+        </nav>
+      </div>
+      {canFullscreen && (
+        <button
+          className="small stage-fullscreen"
+          onClick={(e) => {
+            e.stopPropagation()
+            toggleFullscreen()
+          }}
+        >
+          {fullscreen ? 'Exit full screen' : 'Full screen'}
+        </button>
+      )}
     </main>
   )
 }
