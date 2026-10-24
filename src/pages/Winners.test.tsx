@@ -75,7 +75,7 @@ describe('Winners presentation', () => {
   it('ends on a recap of all three winners and stops advancing', async () => {
     setup({ state: 'revealed', tiebreaks: {} }, ballots)
     await next(10)
-    expect(screen.getByText('The end')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Continue →' })).toBeDisabled()
     expect(screen.getByText('Clark')).toBeInTheDocument()
     expect(screen.getByText('Brown')).toBeInTheDocument()
     expect(screen.getByText('Adams')).toBeInTheDocument()
@@ -88,6 +88,14 @@ describe('Winners presentation', () => {
     await userEvent.click(screen.getByRole('button', { name: '← Back' }))
     expect(screen.getByText('Ready?')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '← Back' })).toBeDisabled()
+  })
+
+  it('has a Continue button that advances', async () => {
+    setup({ state: 'revealed', tiebreaks: {} }, ballots)
+    await userEvent.click(screen.getByRole('button', { name: 'Continue →' }))
+    expect(screen.getByRole('heading', { name: 'Undying Lack of Effort' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Continue →' }))
+    expect(screen.getByRole('button', { name: '← Back' })).toBeEnabled()
   })
 
   it('left arrow goes back', async () => {

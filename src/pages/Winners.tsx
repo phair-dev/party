@@ -120,24 +120,17 @@ export default function Winners() {
         </>
       )}
 
-      <footer className="stage-nav">
-        <button
-          disabled={step === 0}
-          onClick={(e) => {
-            e.stopPropagation()
-            setStep((s) => Math.max(s - 1, 0))
-          }}
-        >
-          ← Back
-        </button>
-        <span className="muted">{last ? 'The end' : 'Tap or press → to continue'}</span>
+      <footer className="stage-nav" onClick={(e) => e.stopPropagation()}>
+        <div className="stage-nav-main">
+          <button disabled={step === 0} onClick={() => setStep((s) => Math.max(s - 1, 0))}>
+            ← Back
+          </button>
+          <button disabled={last} onClick={() => setStep((s) => Math.min(s + 1, SLIDES.length - 1))}>
+            Continue →
+          </button>
+        </div>
         {canFullscreen && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              toggleFullscreen()
-            }}
-          >
+          <button className="small" onClick={toggleFullscreen}>
             {fullscreen ? 'Exit full screen' : 'Full screen'}
           </button>
         )}

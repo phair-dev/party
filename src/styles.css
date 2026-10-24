@@ -111,4 +111,6 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .stage .winner .option { justify-content: center; text-align: left; }
 .stage .option.big .thumb { width: 160px; height: 160px; }
 .stage .option.big { font-size: 2em; }
-.stage-nav { display: flex; gap: 16px; align-items: center; margin-top: 24px; }
+.stage-nav { display: flex; flex-direction: column; gap: 12px; align-items: center; margin-top: 24px; }
+.stage-nav-main { display: flex; gap: 16px; }
+button.small { padding: 6px 12px; font-size: .8em; font-weight: 500; opacity: .8; }
