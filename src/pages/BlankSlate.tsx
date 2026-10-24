@@ -1,13 +1,14 @@
 import titleImage from '../assets/shared-brains.jpg'
 import { BLANK_SLATE_PROMPTS } from '../config'
 import { isAdminUser, signInWithGoogle, useUser } from '../hooks'
-import { FullscreenButton, StageNav, useStage } from '../stage'
+import { FullscreenButton, StageNav, useStage, useTabIdentity } from '../stage'
 
 // One extra step for the intro, then one per prompt.
 const STEPS = BLANK_SLATE_PROMPTS.length + 1
 
 export default function BlankSlate() {
   const { user, ready } = useUser(false)
+  useTabIdentity('Shared Brains', '🧠')
   const { step, next, back, fullscreen, last } = useStage(STEPS)
 
   if (!ready) return <main className="container"><p className="muted center">Loading…</p></main>

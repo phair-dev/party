@@ -49,3 +49,16 @@ describe('Trivia', () => {
     expect(screen.getByRole('button', { name: /Continue/ })).toBeDisabled()
   })
 })
+
+describe('Trivia tab', () => {
+  it('sets the tab title and icon, then restores them on leave', () => {
+    document.head.insertAdjacentHTML('beforeend', '<link rel="icon" href="orig.svg">')
+    document.title = 'Costume Contest'
+    const { unmount } = setup(null)
+    expect(document.title).toBe('Immortal Duos')
+    expect(document.querySelector<HTMLLinkElement>('link[rel="icon"]')!.href).toContain('%F0%9F%93%9D')
+    unmount()
+    expect(document.title).toBe('Costume Contest')
+    expect(document.querySelector<HTMLLinkElement>('link[rel="icon"]')!.getAttribute('href')).toBe('orig.svg')
+  })
+})

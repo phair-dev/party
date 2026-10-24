@@ -66,3 +66,18 @@ export function FullscreenButton({ fullscreen }: { fullscreen: boolean }) {
     </button>
   )
 }
+
+// Gives a page its own browser tab title and emoji icon, restoring the site's on leave.
+export function useTabIdentity(title: string, emoji: string) {
+  useEffect(() => {
+    const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+    const prevTitle = document.title
+    const prevHref = icon?.getAttribute('href')
+    document.title = title
+    if (icon) icon.setAttribute('href', `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">${emoji}</text></svg>`)
+    return () => {
+      document.title = prevTitle
+      if (icon && prevHref) icon.setAttribute('href', prevHref)
+    }
+  }, [title, emoji])
+}

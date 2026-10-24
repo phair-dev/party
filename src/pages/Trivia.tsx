@@ -1,6 +1,6 @@
 import titleImage from '../assets/trivia/title.jpg'
 import { isAdminUser, signInWithGoogle, useUser } from '../hooks'
-import { FullscreenButton, StageNav, useStage } from '../stage'
+import { FullscreenButton, StageNav, useStage, useTabIdentity } from '../stage'
 import { TRIVIA } from '../trivia'
 
 // One step for the title, then two per duo: the prompt, then the answer with its source image.
@@ -8,6 +8,7 @@ const STEPS = TRIVIA.length * 2 + 1
 
 export default function Trivia() {
   const { user, ready } = useUser(false)
+  useTabIdentity('Immortal Duos', '📝')
   const { step, next, back, fullscreen, last } = useStage(STEPS)
 
   if (!ready) return <main className="container"><p className="muted center">Loading…</p></main>
