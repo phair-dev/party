@@ -118,4 +118,8 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .stage .option.big { font-size: 2em; }
 .stage-nav { display: flex; gap: 16px; margin-top: 64px; }
 .stage-fullscreen { margin: 24px 0 4px; }
+/* Blank Slate title card: the 16:9 image fills the screen (and the whole display in full screen). */
+.title-image { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: contain; background: #000; }
+.title-overlay { position: fixed; bottom: 8px; left: 0; right: 0; display: flex; justify-content: center; }
+.title-overlay .stage-fullscreen { margin: 0; opacity: .5; }
 button.small { padding: 6px 12px; font-size: .8em; font-weight: 500; opacity: .8; }

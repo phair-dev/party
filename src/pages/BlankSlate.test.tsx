@@ -20,7 +20,7 @@ describe('BlankSlate', () => {
   it('asks signed-out visitors to sign in and hides the prompts', () => {
     setup(null)
     expect(screen.getByText('Sign in with Google')).toBeInTheDocument()
-    expect(screen.queryByText('Grab a marker!')).not.toBeInTheDocument()
+    expect(screen.queryByAltText('Shared Brains')).not.toBeInTheDocument()
   })
 
   it('rejects non-admins', () => {
@@ -30,13 +30,13 @@ describe('BlankSlate', () => {
 
   it('steps through the prompts with the blank shown as underscores', async () => {
     setup(ADMIN_EMAILS[0])
-    expect(screen.getByText('Grab a marker!')).toBeInTheDocument()
+    expect(screen.getByAltText('Shared Brains')).toBeInTheDocument()
     await userEvent.keyboard('{ArrowRight}')
     expect(screen.getByRole('heading', { name: 'BLOOD ____' })).toBeInTheDocument()
     await userEvent.keyboard('{ArrowRight}')
     expect(screen.getByRole('heading', { name: '____ WOLF' })).toBeInTheDocument()
     await userEvent.keyboard('{ArrowLeft}{ArrowLeft}')
-    expect(screen.getByText('Grab a marker!')).toBeInTheDocument()
+    expect(screen.getByAltText('Shared Brains')).toBeInTheDocument()
   })
 
   it('stops on the last prompt', async () => {
