@@ -111,6 +111,7 @@ export default function Admin() {
         </p>
         <p className="muted">
           Game night: the <a href="/blank-slate">Blank Slate prompts</a> (admin sign-in required).
+          {' '}The <a href="/trivia">Immortal Duos answers</a> too.
         </p>
       </section>
 

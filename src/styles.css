@@ -141,3 +141,29 @@ button.small { padding: 6px 12px; font-size: .8em; font-weight: 500; opacity: .8
 }
 .blank-slate button { font-family: 'Fredoka', sans-serif; background: rgba(74, 48, 32, .7); border-color: var(--pumpkin); }
 .blank-slate button:disabled { border-color: var(--line); }
+
+/* /trivia theme, matched to the Immortal Duos title art (gold on royal purple). */
+.trivia {
+  --gold: #f0d98a;
+  --violet: #3a1456;
+  position: fixed; inset: 0; max-width: none; padding: 20px; overflow: auto;
+  background: radial-gradient(ellipse at 50% 30%, #4a1a63 0%, #1d0b2e 75%);
+  font-family: 'Fredoka', sans-serif;
+}
+.trivia .stage-body { max-width: 1100px; gap: 12px; }
+.trivia-category { color: var(--gold); opacity: .75; letter-spacing: .12em; text-transform: uppercase; }
+.trivia-duo {
+  font-family: 'Cinzel', serif; font-weight: 600; color: var(--gold);
+  font-size: clamp(1.8em, 5.5vw, 4em); line-height: 1.15;
+  text-shadow: 0 0 24px rgba(240, 217, 138, .35);
+}
+.trivia-duo .blank { opacity: .6; }
+.trivia-duo .answer { color: #c8e32b; text-shadow: 0 0 24px rgba(200, 227, 43, .45); }
+.trivia-art {
+  max-width: min(80vw, 640px); max-height: 48vh; object-fit: contain;
+  background: #fff; padding: 12px; border-radius: 10px; box-shadow: 0 8px 40px rgba(0, 0, 0, .5);
+}
+.trivia-source { color: var(--gold); font-size: 1.2em; }
+.trivia .stage-nav { margin-top: 24px; }
+.trivia button { font-family: 'Fredoka', sans-serif; background: rgba(58, 20, 86, .8); border-color: var(--gold); }
+.trivia button:disabled { border-color: var(--line); }
