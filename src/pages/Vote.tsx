@@ -139,7 +139,7 @@ export default function Vote() {
         CATEGORIES.map((cat) => (
           <section className="card" key={cat.key}>
             <h2>{cat.title}</h2>
-            <p className="muted">{cat.blurb}</p>
+            <p className="muted">{cat.blurb} — tap your pick again to clear it</p>
             <div className="options">
               {couples.map((c) => {
                 const self = c.id === meId
@@ -157,10 +157,15 @@ export default function Vote() {
                       disabled={locked}
                       checked={picks[cat.key as CategoryKey] === c.id}
                       onChange={() => setPicks((p) => ({ ...p, [cat.key]: c.id }))}
+                      // A checked radio fires no change event, so tapping it again clears the pick.
+                      onClick={() => {
+                        if (picks[cat.key as CategoryKey] === c.id)
+                          setPicks((p) => ({ ...p, [cat.key]: undefined }))
+                      }}
                     />
                     <CoupleLabel couple={c} />
-                    {self && <em className="muted">that's you</em>}
-                    {usedIn && <em className="muted">already your {usedIn.title} pick</em>}
+                    {self && <em className="muted note">that's you</em>}
+                    {usedIn && <em className="muted note">used in {usedIn.short}</em>}
                   </label>
                 )
               })}

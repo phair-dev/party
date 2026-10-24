@@ -66,6 +66,7 @@ a { color: var(--accent); }
 .thumb-empty { display: grid; place-items: center; background: rgba(255,255,255,.08); font-size: 1.6em; }
 .couple-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .couple-text small { color: var(--muted); }
+.option .note { flex: none; white-space: nowrap; font-size: .8em; }
 .count { background: var(--accent); border-radius: 20px; padding: 4px 14px; font-weight: 600; }
 
 input[type=text], input:not([type]) {

@@ -1,7 +1,7 @@
 export const CATEGORIES = [
-  { key: 'icons', title: 'Eternal Icons', blurb: 'Best costume' },
-  { key: 'foolish', title: 'Forever Foolish', blurb: 'Funniest costume' },
-  { key: 'effort', title: 'Undying Lack of Effort', blurb: 'Least effort' },
+  { key: 'icons', title: 'Eternal Icons', short: 'Icons', blurb: 'Best costume' },
+  { key: 'foolish', title: 'Forever Foolish', short: 'Foolish', blurb: 'Funniest costume' },
+  { key: 'effort', title: 'Undying Lack of Effort', short: 'Effort', blurb: 'Least effort' },
 ] as const
 
 export type CategoryKey = (typeof CATEGORIES)[number]['key']

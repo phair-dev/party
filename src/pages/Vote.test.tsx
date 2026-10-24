@@ -136,10 +136,22 @@ describe('Vote form', () => {
     expect(radios('foolish')[0]).toBeDisabled()
     expect(radios('effort')[0]).toBeDisabled()
     expect(radios('icons')[0]).toBeEnabled()
-    expect(screen.getAllByText('already your Eternal Icons pick')).toHaveLength(2)
+    expect(screen.getAllByText('used in Icons')).toHaveLength(2)
     await user.click(radios('foolish')[2]) // Clark
     await user.click(radios('icons')[2]) // can't: Clark is Forever Foolish
     expect(radios('icons')[0]).toBeChecked()
+  })
+
+  it('clears a pick when it is tapped again, freeing the couple elsewhere', async () => {
+    const user = userEvent.setup()
+    setup()
+    await user.click(screen.getByRole('radio', { name: /Brown/ }))
+    const radios = (cat: string) => screen.getAllByRole('radio').filter((r) => r.getAttribute('name') === cat)
+    await user.click(radios('icons')[0])
+    expect(radios('foolish')[0]).toBeDisabled()
+    await user.click(radios('icons')[0])
+    expect(radios('icons')[0]).not.toBeChecked()
+    expect(radios('foolish')[0]).toBeEnabled()
   })
 
   it('keeps submit disabled until all three picks are made', async () => {
