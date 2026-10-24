@@ -30,7 +30,7 @@ export default function BlankSlate() {
   const prompt = step === 0 ? null : BLANK_SLATE_PROMPTS[step - 1]
 
   return (
-    <main className="stage" onClick={next}>
+    <main className="stage blank-slate" onClick={next}>
       {prompt === null ? (
         <>
           <img className="title-image" src={titleImage} alt="Shared Brains" />
