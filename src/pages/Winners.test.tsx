@@ -128,3 +128,34 @@ describe('Winners presentation', () => {
     expect(within(winnerCard()).getByText("It's a tie!")).toBeInTheDocument()
   })
 })
+
+describe('Full screen', () => {
+  function stubFullscreen() {
+    const request = vi.fn(() => Promise.resolve())
+    Object.assign(document.documentElement, { requestFullscreen: request })
+    return request
+  }
+
+  it('hides the button where the browser has no fullscreen support', () => {
+    setup({ state: 'revealed', tiebreaks: {} })
+    expect(screen.queryByRole('button', { name: 'Full screen' })).not.toBeInTheDocument()
+  })
+
+  it('enters full screen from the button without advancing the slide', async () => {
+    const request = stubFullscreen()
+    setup({ state: 'revealed', tiebreaks: {} })
+    await userEvent.click(screen.getByRole('button', { name: 'Full screen' }))
+    expect(request).toHaveBeenCalled()
+    expect(screen.getByText('Ready?')).toBeInTheDocument()
+    delete (document.documentElement as { requestFullscreen?: unknown }).requestFullscreen
+  })
+
+  it('toggles with the F key', async () => {
+    const request = stubFullscreen()
+    setup({ state: 'revealed', tiebreaks: {} })
+    await userEvent.keyboard('f')
+    expect(request).toHaveBeenCalled()
+    delete (document.documentElement as { requestFullscreen?: unknown }).requestFullscreen
+  })
+})
+
