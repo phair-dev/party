@@ -47,7 +47,7 @@ a { color: var(--accent); }
 .options { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 
 .option {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
   background: rgba(255, 255, 255, .05);
   border: 2px solid transparent;
   border-left: 4px solid var(--accent);
@@ -64,10 +64,17 @@ a { color: var(--accent); }
 
 .thumb { width: 52px; height: 52px; border-radius: 10px; object-fit: cover; flex: none; }
 .thumb-empty { display: grid; place-items: center; background: rgba(255,255,255,.08); font-size: 1.6em; }
-.couple-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+/* Keep names readable: when buttons or counts don't fit beside them, they wrap below instead. */
+.couple-text { display: flex; flex-direction: column; flex: 1 1 9em; min-width: 9em; }
 .couple-text small { color: var(--muted); }
 .option .note { flex: none; white-space: nowrap; font-size: .8em; }
-.count { background: var(--accent); border-radius: 20px; padding: 4px 14px; font-weight: 600; }
+/* Vote tally pill: fixed to its content so it never squeezes or covers the couple's text. */
+.count {
+  flex: none; margin-left: auto; min-width: 2em; text-align: center;
+  background: var(--accent); border-radius: 20px; padding: 2px 10px;
+  font-size: .75em; font-weight: 600; line-height: 1.6;
+}
+.couple-text strong, .couple-text small { overflow-wrap: anywhere; }
 
 input[type=text], input:not([type]) {
   width: 100%; padding: 14px; margin-bottom: 10px;
