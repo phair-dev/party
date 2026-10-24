@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Ballot, Contest, Couple } from '../config'
 import * as hooks from '../hooks'
-import { couple } from '../testUtils'
+import { ballot, couple } from '../testUtils'
 import Vote from './Vote'
 
 vi.mock('../firebase', () => ({ auth: {}, db: {}, storage: {} }))
@@ -16,20 +16,22 @@ vi.mock('firebase/firestore', () => ({
 }))
 vi.mock('../hooks')
 
+const b1 = ballot('u1_1', {}, 'a')
+const b2 = ballot('u1_2', {}, 'a')
 const couples = [couple('a', 'Adams'), couple('b', 'Brown'), couple('c', 'Clark')]
 
 function setup(opts: {
   state?: Contest['state'] | null
-  ballot?: Ballot | null | undefined
+  ballots?: Ballot[] | undefined
   ready?: boolean
   couples?: Couple[]
 } = {}) {
   const { state = 'voting', ready = true } = opts
-  const ballot = 'ballot' in opts ? opts.ballot : null
+  const ballots = 'ballots' in opts ? opts.ballots : []
   vi.mocked(hooks.useUser).mockReturnValue({ user: ready ? ({ uid: 'u1' } as never) : null, ready })
   vi.mocked(hooks.useContest).mockReturnValue(state === null ? null : { state, tiebreaks: {} })
   vi.mocked(hooks.useCouples).mockReturnValue(opts.couples ?? couples)
-  vi.mocked(hooks.useMyBallot).mockReturnValue(ballot)
+  vi.mocked(hooks.useMyBallots).mockReturnValue(ballots)
   return render(<MemoryRouter><Vote /></MemoryRouter>)
 }
 
@@ -67,7 +69,7 @@ describe('Vote states', () => {
   })
 
   it('shows loading while the ballot lookup is pending', () => {
-    setup({ ballot: undefined })
+    setup({ ballots: undefined })
     expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
 
@@ -84,17 +86,16 @@ describe('Vote states', () => {
   })
 
   it('shows "already voted" when a ballot exists', () => {
-    setup({ ballot: { uid: 'u1', coupleId: 'a', picks: { icons: 'b', foolish: 'b', effort: 'b' } } })
+    setup({ ballots: [b1, b2] })
     expect(screen.getByText(/Votes are in/)).toBeInTheDocument()
     expect(screen.queryByText('Submit votes')).not.toBeInTheDocument()
   })
 
   it('links to winners from the already-voted screen only once revealed', () => {
-    const b = { uid: 'u1', coupleId: 'a', picks: { icons: 'b', foolish: 'b', effort: 'b' } }
-    const { unmount } = setup({ ballot: b, state: 'voting' })
+        const { unmount } = setup({ ballots: [b1, b2], state: 'voting' })
     expect(screen.queryByText(/See the winners/)).not.toBeInTheDocument()
     unmount()
-    setup({ ballot: b, state: 'revealed' })
+    setup({ ballots: [b1, b2], state: 'revealed' })
     expect(screen.getByText(/See the winners/)).toHaveAttribute('href', '/winners')
   })
 
@@ -158,12 +159,12 @@ describe('Vote form', () => {
     await fillAndSubmit()
     await waitFor(() => expect(batches[0].commit).toHaveBeenCalled())
     expect(batches).toHaveLength(1)
-    expect(batches[0].set).toHaveBeenCalledWith('ballots/u1', {
+    expect(batches[0].set).toHaveBeenCalledWith('ballots/u1_1', {
       coupleId: 'b',
       picks: { icons: 'a', foolish: 'c', effort: 'a' },
       createdAt: 'TS',
     })
-    expect(batches[0].set).toHaveBeenCalledWith('slots/b_1', { uid: 'u1', coupleId: 'b' })
+    expect(batches[0].set).toHaveBeenCalledWith('slots/b_1', { uid: 'u1', coupleId: 'b', ballotId: 'u1_1' })
     expect(screen.queryByText(/Could not submit/)).not.toBeInTheDocument()
   })
 
@@ -171,8 +172,8 @@ describe('Vote form', () => {
     const batches = mockBatch(['fail', 'ok'])
     await fillAndSubmit()
     await waitFor(() => expect(batches).toHaveLength(2))
-    expect(batches[1].set).toHaveBeenCalledWith('slots/b_2', { uid: 'u1', coupleId: 'b' })
-    expect(batches[1].set).toHaveBeenCalledWith('ballots/u1', expect.objectContaining({ coupleId: 'b' }))
+    expect(batches[1].set).toHaveBeenCalledWith('slots/b_2', { uid: 'u1', coupleId: 'b', ballotId: 'u1_1' })
+    expect(batches[1].set).toHaveBeenCalledWith('ballots/u1_1', expect.objectContaining({ coupleId: 'b' }))
     expect(screen.queryByText(/Could not submit/)).not.toBeInTheDocument()
   })
 
@@ -198,5 +199,37 @@ describe('Vote form', () => {
     await fillAndSubmit()
     expect(await screen.findByText(/two people from your couple/)).toBeInTheDocument()
     expect(screen.queryByText(/Check your connection/)).not.toBeInTheDocument()
+  })
+})
+
+describe('sharing one device', () => {
+  it('offers a second vote after the first and locks the couple', async () => {
+    const user = userEvent.setup()
+    setup({ ballots: [ballot('u1_1', {}, 'b')] })
+    expect(screen.getByText(/One vote is in/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Vote as the second person' }))
+    const me = screen.getAllByRole('radio').filter((r) => r.getAttribute('name') === 'me')
+    expect(me.map((r) => (r as HTMLInputElement).disabled)).toEqual([true, false, true])
+    expect(me[1]).toBeChecked()
+  })
+
+  it('writes the second ballot under the free id', async () => {
+    const batches = mockBatch(['ok'])
+    const user = userEvent.setup()
+    setup({ ballots: [ballot('u1_1', {}, 'b')] })
+    await user.click(screen.getByRole('button', { name: 'Vote as the second person' }))
+    const pick = (cat: string, idx: number) =>
+      user.click(screen.getAllByRole('radio').filter((r) => r.getAttribute('name') === cat)[idx])
+    await pick('icons', 0)
+    await pick('foolish', 2)
+    await pick('effort', 0)
+    await user.click(screen.getByRole('button', { name: 'Submit votes' }))
+    await waitFor(() => expect(batches[0].commit).toHaveBeenCalled())
+    expect(batches[0].set).toHaveBeenCalledWith('ballots/u1_2', expect.objectContaining({ coupleId: 'b' }))
+  })
+
+  it('offers no third vote', () => {
+    setup({ ballots: [b1, b2] })
+    expect(screen.queryByRole('button', { name: 'Vote as the second person' })).not.toBeInTheDocument()
   })
 })

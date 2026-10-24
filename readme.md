@@ -24,9 +24,10 @@ Defined once in `src/config.ts`.
 - **Routes:** `/` guest ballot, `/admin` host console, `/winners` big-screen results (locked until revealed).
 - **Contest state** (`config/contest`): `registration` → `voting` → `revealed`. Switch it in `/admin`.
   Voting is only accepted in `voting`; ballots become readable by guests only in `revealed`.
-- **Ballots:** one per person (`ballots/{uid}`), all three categories required, never for your own
-  couple. At most 2 ballots per couple, enforced with create-only claim docs `slots/{coupleId}_{1|2}`
-  written in the same batch.
+- **Ballots:** one per person, all three categories required, never for your own couple. A device
+  may cast up to 2 (`ballots/{uid}_{1|2}`, both for the same couple) so a couple can share one phone.
+  At most 2 ballots per couple across all devices, enforced with create-only claim docs
+  `slots/{coupleId}_{1|2}` written in the same batch.
 - **Ties:** shown as ties. In `/admin` the hosts can press **Make winner** on a tied couple
   (stored as `config/contest.tiebreaks.<category>`).
 - **Admins:** `loveaphair@gmail.com`, `fredalyssa@gmail.com`. The list is duplicated in
@@ -37,7 +38,7 @@ Defined once in `src/config.ts`.
 1. `/admin` → sign in with Google → add each couple (last name, costume set, camera photo).
 2. When everyone is registered, set the state to **Voting**.
 3. When voting ends, set **Revealed** and put `/winners` on a TV. Break any ties first.
-4. A wrong ballot (e.g. someone picked the wrong couple) can be deleted in `/admin` so they can redo it.
+4. A wrong ballot (e.g. someone picked the wrong couple) can be deleted in `/admin` (listed newest first, labelled by couple name) so they can redo it.
 5. Delete couples before voting opens, not after: ballots for a deleted couple count for nobody.
 
 ## Development

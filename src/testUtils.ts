@@ -6,8 +6,8 @@ export const couple = (id: string, lastName = id, costume = `${id} costume`): Co
   costume,
 })
 
-export const ballot = (uid: string, picks: Partial<Record<CategoryKey, string>>, coupleId = 'me'): Ballot => ({
-  uid,
+export const ballot = (id: string, picks: Partial<Record<CategoryKey, string>>, coupleId = 'me'): Ballot => ({
+  id,
   coupleId,
   picks: { icons: 'x', foolish: 'x', effort: 'x', ...picks },
 })

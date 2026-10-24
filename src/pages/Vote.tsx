@@ -4,30 +4,46 @@ import { doc, serverTimestamp, writeBatch } from 'firebase/firestore'
 import { db } from '../firebase'
 import { CATEGORIES, type CategoryKey, type Picks } from '../config'
 import { CoupleLabel } from '../components'
-import { useContest, useCouples, useMyBallot, useUser } from '../hooks'
+import { useContest, useCouples, useMyBallots, useUser } from '../hooks'
 
 export default function Vote() {
   const { user, ready } = useUser(true)
   const signedIn = !!user
   const state = useContest(signedIn)?.state ?? null
   const couples = useCouples(signedIn)
-  const myBallot = useMyBallot(user?.uid)
+  const myBallots = useMyBallots(user?.uid)
 
-  const [meId, setMeId] = useState('')
+  const [pickedMe, setPickedMe] = useState('')
+  const [addingSecond, setAddingSecond] = useState(false)
   const [picks, setPicks] = useState<Partial<Picks>>({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
-  if (!ready || !signedIn || state === null || myBallot === undefined) {
+  if (!ready || !signedIn || state === null || myBallots === undefined) {
     return <Shell><p className="muted center">Loading…</p></Shell>
   }
 
-  if (myBallot) {
+  // Both people in a couple may share one device, but the second ballot must be for the same couple.
+  const lockedId = myBallots[0]?.coupleId
+  const meId = lockedId ?? pickedMe
+  const setMeId = setPickedMe
+  const showForm = myBallots.length === 0 || (myBallots.length === 1 && addingSecond && state === 'voting')
+
+  if (myBallots.length > 0 && !showForm) {
+    const canAddSecond = myBallots.length === 1 && state === 'voting'
     return (
       <Shell>
         <div className="card notice ok">
-          <h2>✅ Votes are in!</h2>
+          <h2>✅ {myBallots.length === 1 ? 'One vote is in!' : 'Votes are in!'}</h2>
           <p>Thanks for voting. Winners will be announced soon.</p>
+          {canAddSecond && (
+            <>
+              <p>Sharing this phone with your partner? They can vote here too.</p>
+              <button className="primary" onClick={() => setAddingSecond(true)}>
+                Vote as the second person
+              </button>
+            </>
+          )}
           {state === 'revealed' && <Link to="/winners">See the winners →</Link>}
         </div>
       </Shell>
@@ -62,17 +78,23 @@ export default function Vote() {
     if (!user || !complete) return
     setBusy(true)
     setError('')
-    // Each couple has two ballot slots; try the first, then the second.
+    // A device has two ballot ids; use the free one.
+    const taken = new Set((myBallots ?? []).map((b) => b.id))
+    const ballotId = [1, 2].map((n) => `${user.uid}_${n}`).find((id) => !taken.has(id))
+    if (!ballotId) return
+    // Each couple has two slots across all devices; try the first, then the second.
     for (const n of [1, 2]) {
       const batch = writeBatch(db)
-      batch.set(doc(db, 'ballots', user.uid), {
+      batch.set(doc(db, 'ballots', ballotId), {
         coupleId: meId,
         picks,
         createdAt: serverTimestamp(),
       })
-      batch.set(doc(db, 'slots', `${meId}_${n}`), { uid: user.uid, coupleId: meId })
+      batch.set(doc(db, 'slots', `${meId}_${n}`), { uid: user.uid, coupleId: meId, ballotId })
       try {
         await batch.commit()
+        setPicks({})
+        setAddingSecond(false)
         setBusy(false)
         return
       } catch (e) {
@@ -100,7 +122,13 @@ export default function Vote() {
         <div className="options">
           {couples.map((c) => (
             <label key={c.id} className={`option ${meId === c.id ? 'selected' : ''}`}>
-              <input type="radio" name="me" checked={meId === c.id} onChange={() => setMeId(c.id)} />
+              <input
+                type="radio"
+                name="me"
+                checked={meId === c.id}
+                disabled={!!lockedId && lockedId !== c.id}
+                onChange={() => setMeId(c.id)}
+              />
               <CoupleLabel couple={c} />
             </label>
           ))}

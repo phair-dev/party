@@ -22,20 +22,31 @@ service cloud.firestore {
       return /databases/$(database)/documents/couples/$(id);
     }
 
+    function ballotPath(id) {
+      return /databases/$(database)/documents/ballots/$(id);
+    }
+
     function slotPath(id) {
       return /databases/$(database)/documents/slots/$(id);
     }
 
-    // A ballot is only valid together with a slot claim (max 2 per couple)
-    // created in the same batch.
-    function claimsSlot(coupleId) {
+    // A ballot is only valid together with a couple slot claim (max 2 per couple,
+    // across all devices) created in the same batch for that exact ballot.
+    function claimsSlot(coupleId, ballotId) {
       return (existsAfter(slotPath(coupleId + '_1'))
-          && getAfter(slotPath(coupleId + '_1')).data.uid == request.auth.uid)
+          && getAfter(slotPath(coupleId + '_1')).data.ballotId == ballotId)
         || (existsAfter(slotPath(coupleId + '_2'))
-          && getAfter(slotPath(coupleId + '_2')).data.uid == request.auth.uid);
+          && getAfter(slotPath(coupleId + '_2')).data.ballotId == ballotId);
     }
 
-    function validBallot(d) {
+    // A device's second ballot must be for the same couple as its first.
+    function sameCoupleAsFirst(ballotId, coupleId) {
+      return ballotId.matches('.*_1')
+        || (existsAfter(ballotPath(ballotId.replace('_2$', '_1')))
+          && getAfter(ballotPath(ballotId.replace('_2$', '_1'))).data.coupleId == coupleId);
+    }
+
+    function validBallot(d, ballotId) {
       return d.keys().hasOnly(['coupleId', 'picks', 'createdAt'])
         && d.keys().hasAll(['coupleId', 'picks', 'createdAt'])
         && d.createdAt == request.time
@@ -50,7 +61,8 @@ service cloud.firestore {
         && exists(couplePath(d.picks.icons))
         && exists(couplePath(d.picks.foolish))
         && exists(couplePath(d.picks.effort))
-        && claimsSlot(d.coupleId);
+        && claimsSlot(d.coupleId, ballotId)
+        && sameCoupleAsFirst(ballotId, d.coupleId);
     }
 
     match /config/contest {
@@ -68,14 +80,16 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /ballots/{uid} {
+    // ballots/{uid}_{1|2}: each device (anonymous uid) may cast at most 2 ballots,
+    // so a couple sharing one phone can still vote twice.
+    match /ballots/{ballotId} {
       allow read: if isAdmin()
-        || (signedIn() && request.auth.uid == uid)
+        || (signedIn() && ballotId in [request.auth.uid + '_1', request.auth.uid + '_2'])
         || (signedIn() && contestState() == 'revealed');
       allow create: if signedIn()
-        && request.auth.uid == uid
+        && ballotId in [request.auth.uid + '_1', request.auth.uid + '_2']
         && contestState() == 'voting'
-        && validBallot(request.resource.data);
+        && validBallot(request.resource.data, ballotId);
       allow delete: if isAdmin();
     }
 
@@ -84,11 +98,12 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow create: if signedIn()
         && contestState() == 'voting'
-        && request.resource.data.keys().hasOnly(['uid', 'coupleId'])
+        && request.resource.data.keys().hasOnly(['uid', 'coupleId', 'ballotId'])
         && request.resource.data.uid == request.auth.uid
+        && request.resource.data.ballotId in [request.auth.uid + '_1', request.auth.uid + '_2']
         && slot in [request.resource.data.coupleId + '_1', request.resource.data.coupleId + '_2']
-        && existsAfter(/databases/$(database)/documents/ballots/$(request.auth.uid))
-        && getAfter(/databases/$(database)/documents/ballots/$(request.auth.uid)).data.coupleId
+        && existsAfter(ballotPath(request.resource.data.ballotId))
+        && getAfter(ballotPath(request.resource.data.ballotId)).data.coupleId
           == request.resource.data.coupleId;
       allow delete: if isAdmin();
     }

@@ -29,14 +29,14 @@ describe('admin allow-list', () => {
 })
 
 describe('firestore.rules guards', () => {
-  const ballots = firestore.slice(firestore.indexOf('match /ballots/{uid}'), firestore.indexOf('match /slots/'))
+  const ballots = firestore.slice(firestore.indexOf('match /ballots/{ballotId}'), firestore.indexOf('match /slots/'))
   const slots = firestore.slice(firestore.indexOf('match /slots/'))
 
   it('only allows ballot creation while voting, by the owner, with a valid ballot', () => {
     const create = ballots.match(/allow create:[^;]*;/)![0]
     expect(create).toContain("contestState() == 'voting'")
-    expect(create).toContain('request.auth.uid == uid')
-    expect(create).toContain('validBallot(request.resource.data)')
+    expect(create).toContain("ballotId in [request.auth.uid + '_1', request.auth.uid + '_2']")
+    expect(create).toContain('validBallot(request.resource.data, ballotId)')
   })
 
   it('does not let guests update or delete ballots', () => {
@@ -57,7 +57,8 @@ describe('firestore.rules guards', () => {
   })
 
   it('requires a slot claim and limits slot ids to _1 and _2', () => {
-    expect(firestore).toContain('claimsSlot(d.coupleId)')
+    expect(firestore).toContain('claimsSlot(d.coupleId, ballotId)')
+    expect(firestore).toContain('sameCoupleAsFirst(ballotId, d.coupleId)')
     expect(slots).toContain("slot in [request.resource.data.coupleId + '_1', request.resource.data.coupleId + '_2']")
     expect(slots).not.toMatch(/_3/)
     expect(slots.match(/allow create:[^;]*;/)![0]).toContain("contestState() == 'voting'")

@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore'
 import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { auth, db, storage } from '../firebase'
-import { CATEGORIES, type ContestState, type Couple } from '../config'
+import { CATEGORIES, type Ballot, type ContestState, type Couple } from '../config'
 import { CoupleLabel } from '../components'
 import { resizePhoto } from '../photo'
 import { podium, tally } from '../tally'
@@ -68,11 +68,17 @@ export default function Admin() {
   const standings = tally(ballots, couples)
   const byId = new Map(couples.map((c) => [c.id, c]))
 
-  async function deleteBallot(uid: string) {
-    if (!confirm('Delete this ballot so that person can vote again?')) return
-    const slots = await getDocs(query(collection(db, 'slots'), where('uid', '==', uid)))
+  // Newest first, so "undo my vote" requests are at the top. A just-cast ballot has no server time yet.
+  const newestFirst = [...ballots].sort(
+    (a, b) => (b.createdAt?.toMillis() ?? Infinity) - (a.createdAt?.toMillis() ?? Infinity),
+  )
+
+  async function deleteBallot(b: Ballot) {
+    const name = byId.get(b.coupleId)?.lastName ?? 'this couple'
+    if (!confirm(`Delete one ballot cast as ${name} so they can vote again?`)) return
+    const slots = await getDocs(query(collection(db, 'slots'), where('ballotId', '==', b.id)))
     const batch = writeBatch(db)
-    batch.delete(doc(db, 'ballots', uid))
+    batch.delete(doc(db, 'ballots', b.id))
     slots.forEach((s) => batch.delete(s.ref))
     await batch.commit()
   }
@@ -141,13 +147,14 @@ export default function Admin() {
 
       <section className="card">
         <h2>Ballots</h2>
-        {ballots.map((b) => (
-          <div className="option" key={b.uid}>
+        <p className="muted">Newest first — the latest ballot is at the top.</p>
+        {newestFirst.map((b) => (
+          <div className="option" key={b.id}>
             <span className="couple-text">
               <strong>{byId.get(b.coupleId)?.lastName ?? '(deleted couple)'}</strong>
-              <small>{b.uid.slice(0, 6)}</small>
+              <small>{b.createdAt ? new Date(b.createdAt.toMillis()).toLocaleTimeString() : 'just now'}</small>
             </span>
-            <button className="danger" onClick={() => deleteBallot(b.uid)}>Delete</button>
+            <button className="danger" onClick={() => deleteBallot(b)}>Delete</button>
           </div>
         ))}
       </section>
@@ -202,7 +209,6 @@ function AddCouple() {
           ref={fileRef}
           type="file"
           accept="image/*"
-          capture="environment"
           onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
         />
         <button className="primary" disabled={busy || !lastName.trim() || !costume.trim()}>
@@ -262,7 +268,7 @@ function CoupleRow({ couple }: { couple: Couple }) {
     <div className="option edit">
       <input value={lastName} onChange={(e) => setLastName(e.target.value)} />
       <input value={costume} onChange={(e) => setCostume(e.target.value)} />
-      <input type="file" accept="image/*" capture="environment" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
+      <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
       <button className="primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
       <button onClick={() => setEditing(false)}>Cancel</button>
     </div>

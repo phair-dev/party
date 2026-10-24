@@ -28,9 +28,11 @@ export interface Couple {
 }
 
 export interface Ballot {
-  uid: string
+  id: string // `${uid}_${1|2}`: a device can cast at most 2
   coupleId: string
   picks: Picks
+  // null while a just-written ballot's server timestamp is still pending
+  createdAt?: { toMillis(): number } | null
 }
 
 // Keep in sync with the allow-lists in firestore.rules and storage.rules.
