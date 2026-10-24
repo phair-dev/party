@@ -28,13 +28,13 @@ describe('BlankSlate', () => {
     expect(screen.getByText(/is not an admin/)).toBeInTheDocument()
   })
 
-  it('steps through the prompts with the blank shown as underscores', async () => {
+  it('steps through the prompts with the blank shown as a line', async () => {
     setup(ADMIN_EMAILS[0])
     expect(screen.getByAltText('Shared Brains')).toBeInTheDocument()
     await userEvent.keyboard('{ArrowRight}')
-    expect(screen.getByRole('heading', { name: 'BLOOD ____' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'BLOOD blank' })).toBeInTheDocument()
     await userEvent.keyboard('{ArrowRight}')
-    expect(screen.getByRole('heading', { name: '____ WOLF' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'blank WOLF' })).toBeInTheDocument()
     await userEvent.keyboard('{ArrowLeft}{ArrowLeft}')
     expect(screen.getByAltText('Shared Brains')).toBeInTheDocument()
   })
@@ -42,7 +42,7 @@ describe('BlankSlate', () => {
   it('stops on the last prompt', async () => {
     setup(ADMIN_EMAILS[0])
     for (let i = 0; i < BLANK_SLATE_PROMPTS.length + 3; i++) await userEvent.keyboard('{ArrowRight}')
-    expect(screen.getByRole('heading', { name: '____ CAT' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'blank CAT' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Continue/ })).toBeDisabled()
   })
 })

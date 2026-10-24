@@ -42,7 +42,10 @@ export default function BlankSlate() {
       ) : (
         <>
           <div className="stage-body">
-            <h1 className="prompt">{prompt.replace('[BLANK]', '____')}</h1>
+            <h1 className="prompt">{prompt.split('[BLANK]').flatMap((part, i) => [
+                i > 0 && <span key={i} className="blank-line" role="img" aria-label="blank" />,
+                part,
+              ])}</h1>
             <StageNav step={step} last={last} back={back} next={next} />
           </div>
           <FullscreenButton fullscreen={fullscreen} />
