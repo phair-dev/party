@@ -1,7 +1,26 @@
-import { CATEGORIES } from '../config'
+import { useEffect, useState } from 'react'
+import { CATEGORIES, REVEAL_ORDER, type CategoryKey } from '../config'
 import { CoupleLabel } from '../components'
-import { podium, tally } from '../tally'
+import { podium, tally, type Podium } from '../tally'
 import { useBallots, useContest, useCouples, useUser } from '../hooks'
+
+type Slide =
+  | { kind: 'intro' }
+  | { kind: 'teaser'; category: CategoryKey }
+  | { kind: 'winner'; category: CategoryKey }
+  | { kind: 'recap' }
+
+// intro, then (category title, then its winner) per category, then a recap.
+const SLIDES: Slide[] = [
+  { kind: 'intro' },
+  ...REVEAL_ORDER.flatMap((category): Slide[] => [
+    { kind: 'teaser', category },
+    { kind: 'winner', category },
+  ]),
+  { kind: 'recap' },
+]
+
+const titleOf = (key: CategoryKey) => CATEGORIES.find((c) => c.key === key)!
 
 export default function Winners() {
   const { user } = useUser(true)
@@ -10,6 +29,20 @@ export default function Winners() {
   const revealed = state === 'revealed'
   const couples = useCouples(!!user)
   const ballots = useBallots(!!user && revealed)
+  const [step, setStep] = useState(0)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault()
+        setStep((s) => Math.min(s + 1, SLIDES.length - 1))
+      } else if (e.key === 'ArrowLeft') {
+        setStep((s) => Math.max(s - 1, 0))
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   if (!revealed) {
     return (
@@ -21,33 +54,88 @@ export default function Winners() {
   }
 
   const standings = tally(ballots, couples)
+  const podiumOf = (key: CategoryKey) => podium(standings[key], contest?.tiebreaks[key])
+  const slide = SLIDES[step]
+  const last = step === SLIDES.length - 1
 
   return (
-    <main className="container wide">
-      <h1>🏆 And the winners are… 🏆</h1>
-      {CATEGORIES.map((cat) => {
-        const { winners, runnersUp, tied, brokeTie } = podium(standings[cat.key], contest?.tiebreaks[cat.key])
-        return (
-          <section className="card winner" key={cat.key}>
-            <h2>{cat.title}</h2>
-            {winners.length === 0 && <p className="muted">No votes</p>}
-            {tied && <p className="muted">It's a tie!</p>}
-            {brokeTie && <p className="muted">Won the tie-break</p>}
-            {winners.map((w) => (
-              <div className="option big" key={w.couple.id}>
-                <CoupleLabel couple={w.couple} />
-                <span className="count">{w.votes}</span>
-              </div>
-            ))}
-            {runnersUp.map((r) => (
-              <div className="option runner-up" key={r.couple.id}>
-                <CoupleLabel couple={r.couple} />
-                <span className="count">{r.votes}</span>
-              </div>
-            ))}
-          </section>
-        )
-      })}
+    <main className="stage" onClick={() => setStep((s) => Math.min(s + 1, SLIDES.length - 1))}>
+      {slide.kind === 'intro' && (
+        <>
+          <h1>🏆 The Winners 🏆</h1>
+          <p className="subtitle big">Ready?</p>
+        </>
+      )}
+
+      {slide.kind === 'teaser' && (
+        <>
+          <p className="muted">And the award for…</p>
+          <h1 className="huge">{titleOf(slide.category).title}</h1>
+          <p className="subtitle big">{titleOf(slide.category).blurb}</p>
+        </>
+      )}
+
+      {slide.kind === 'winner' && (
+        <section className="card winner">
+          <h2>{titleOf(slide.category).title}</h2>
+          <PodiumView p={podiumOf(slide.category)} />
+        </section>
+      )}
+
+      {slide.kind === 'recap' && (
+        <>
+          <h1>🎃 Congratulations! 🎃</h1>
+          {REVEAL_ORDER.map((key) => {
+            const { winners } = podiumOf(key)
+            return (
+              <section className="card winner" key={key}>
+                <h2>{titleOf(key).title}</h2>
+                {winners.length === 0 && <p className="muted">No votes</p>}
+                {winners.map((w) => (
+                  <div className="option" key={w.couple.id}>
+                    <CoupleLabel couple={w.couple} />
+                  </div>
+                ))}
+              </section>
+            )
+          })}
+        </>
+      )}
+
+      <footer className="stage-nav">
+        <button
+          disabled={step === 0}
+          onClick={(e) => {
+            e.stopPropagation()
+            setStep((s) => Math.max(s - 1, 0))
+          }}
+        >
+          ← Back
+        </button>
+        <span className="muted">{last ? 'The end' : 'Tap or press → to continue'}</span>
+      </footer>
     </main>
+  )
+}
+
+function PodiumView({ p }: { p: Podium }) {
+  return (
+    <>
+      {p.winners.length === 0 && <p className="muted">No votes</p>}
+      {p.tied && <p className="muted">It's a tie!</p>}
+      {p.brokeTie && <p className="muted">Won the tie-break</p>}
+      {p.winners.map((w) => (
+        <div className="option big" key={w.couple.id}>
+          <CoupleLabel couple={w.couple} />
+          <span className="count">{w.votes}</span>
+        </div>
+      ))}
+      {p.runnersUp.map((r) => (
+        <div className="option runner-up" key={r.couple.id}>
+          <CoupleLabel couple={r.couple} />
+          <span className="count">{r.votes}</span>
+        </div>
+      ))}
+    </>
   )
 }

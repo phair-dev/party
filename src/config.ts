@@ -5,6 +5,9 @@ export const CATEGORIES = [
 ] as const
 
 export type CategoryKey = (typeof CATEGORIES)[number]['key']
+
+// Order the winners are announced on /winners: build up to the best.
+export const REVEAL_ORDER: readonly CategoryKey[] = ['effort', 'foolish', 'icons']
 export type Picks = Record<CategoryKey, string>
 
 export type ContestState = 'registration' | 'voting' | 'revealed'

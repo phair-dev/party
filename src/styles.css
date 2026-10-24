@@ -89,3 +89,18 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .winner .option.big { padding: 18px; font-size: 1.5em; }
 .winner .option.big .thumb { width: 96px; height: 96px; }
 .runner-up { opacity: .7; }
+
+/* /winners presentation */
+.stage {
+  min-height: calc(100vh - 40px);
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; text-align: center; cursor: pointer; user-select: none;
+}
+.stage .card { width: 100%; }
+.stage h1.huge { font-size: 3.2em; }
+.stage .winner .option { justify-content: center; text-align: left; }
+.stage .option.big .thumb { width: 160px; height: 160px; }
+.stage .option.big { font-size: 2em; }
+.stage-nav { display: flex; gap: 16px; align-items: center; margin-top: 24px; }
