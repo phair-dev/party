@@ -18,7 +18,7 @@ vi.mock('../hooks')
 
 const b1 = ballot('u1_1', {}, 'a')
 const b2 = ballot('u1_2', {}, 'a')
-const couples = [couple('a', 'Adams'), couple('b', 'Brown'), couple('c', 'Clark')]
+const couples = [couple('a', 'Adams'), couple('b', 'Brown'), couple('c', 'Clark'), couple('d', 'Davis')]
 
 function setup(opts: {
   state?: Contest['state'] | null
@@ -118,12 +118,28 @@ describe('Vote form', () => {
     await user.click(screen.getByRole('radio', { name: /Brown/ }))
     for (const name of ['icons', 'foolish', 'effort']) {
       const radios = screen.getAllByRole('radio').filter((r) => r.getAttribute('name') === name)
-      expect(radios).toHaveLength(3)
+      expect(radios).toHaveLength(4)
       expect(radios[1]).toBeDisabled()
       expect(radios[0]).toBeEnabled()
       expect(radios[2]).toBeEnabled()
+      expect(radios[3]).toBeEnabled()
     }
     expect(screen.getAllByText("that's you")).toHaveLength(3)
+  })
+
+  it('locks a couple already picked in another category', async () => {
+    const user = userEvent.setup()
+    setup()
+    await user.click(screen.getByRole('radio', { name: /Brown/ }))
+    const radios = (cat: string) => screen.getAllByRole('radio').filter((r) => r.getAttribute('name') === cat)
+    await user.click(radios('icons')[0]) // Adams
+    expect(radios('foolish')[0]).toBeDisabled()
+    expect(radios('effort')[0]).toBeDisabled()
+    expect(radios('icons')[0]).toBeEnabled()
+    expect(screen.getAllByText('already your Eternal Icons pick')).toHaveLength(2)
+    await user.click(radios('foolish')[2]) // Clark
+    await user.click(radios('icons')[2]) // can't: Clark is Forever Foolish
+    expect(radios('icons')[0]).toBeChecked()
   })
 
   it('keeps submit disabled until all three picks are made', async () => {
@@ -138,7 +154,7 @@ describe('Vote form', () => {
     await pick('icons', 0)
     await pick('foolish', 2)
     expect(submit).toBeDisabled()
-    await pick('effort', 0)
+    await pick('effort', 3)
     expect(submit).toBeEnabled()
   })
 
@@ -150,7 +166,7 @@ describe('Vote form', () => {
       user.click(screen.getAllByRole('radio').filter((r) => r.getAttribute('name') === cat)[idx])
     await pick('icons', 0)
     await pick('foolish', 2)
-    await pick('effort', 0)
+    await pick('effort', 3)
     await user.click(screen.getByRole('button', { name: 'Submit votes' }))
   }
 
@@ -161,7 +177,7 @@ describe('Vote form', () => {
     expect(batches).toHaveLength(1)
     expect(batches[0].set).toHaveBeenCalledWith('ballots/u1_1', {
       coupleId: 'b',
-      picks: { icons: 'a', foolish: 'c', effort: 'a' },
+      picks: { icons: 'a', foolish: 'c', effort: 'd' },
       createdAt: 'TS',
     })
     expect(batches[0].set).toHaveBeenCalledWith('slots/b_1', { uid: 'u1', coupleId: 'b', ballotId: 'u1_1' })
@@ -209,7 +225,7 @@ describe('sharing one device', () => {
     expect(screen.getByText(/One vote is in/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Vote as the second person' }))
     const me = screen.getAllByRole('radio').filter((r) => r.getAttribute('name') === 'me')
-    expect(me.map((r) => (r as HTMLInputElement).disabled)).toEqual([true, false, true])
+    expect(me.map((r) => (r as HTMLInputElement).disabled)).toEqual([true, false, true, true])
     expect(me[1]).toBeChecked()
   })
 
@@ -222,7 +238,7 @@ describe('sharing one device', () => {
       user.click(screen.getAllByRole('radio').filter((r) => r.getAttribute('name') === cat)[idx])
     await pick('icons', 0)
     await pick('foolish', 2)
-    await pick('effort', 0)
+    await pick('effort', 3)
     await user.click(screen.getByRole('button', { name: 'Submit votes' }))
     await waitFor(() => expect(batches[0].commit).toHaveBeenCalled())
     expect(batches[0].set).toHaveBeenCalledWith('ballots/u1_2', expect.objectContaining({ coupleId: 'b' }))

@@ -24,7 +24,7 @@ Defined once in `src/config.ts`.
 - **Routes:** `/` guest ballot, `/admin` host console, `/winners` big-screen results (locked until revealed).
 - **Contest state** (`config/contest`): `registration` → `voting` → `revealed`. Switch it in `/admin`.
   Voting is only accepted in `voting`; ballots become readable by guests only in `revealed`.
-- **Ballots:** one per person, all three categories required, never for your own couple. A device
+- **Ballots:** one per person, all three categories required, never for your own couple, and never the same couple twice on one ballot. A device
   may cast up to 2 (`ballots/{uid}_{1|2}`, both for the same couple) so a couple can share one phone.
   At most 2 ballots per couple across all devices, enforced with create-only claim docs
   `slots/{coupleId}_{1|2}` written in the same batch.

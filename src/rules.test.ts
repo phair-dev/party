@@ -50,6 +50,12 @@ describe('firestore.rules guards', () => {
     }
   })
 
+  it('forbids picking the same couple in more than one category', () => {
+    for (const pair of ['icons != d.picks.foolish', 'icons != d.picks.effort', 'foolish != d.picks.effort']) {
+      expect(firestore).toContain(`d.picks.${pair}`)
+    }
+  })
+
   it('requires picks to be exactly the three categories and to exist', () => {
     expect(firestore).toContain("d.picks.keys().hasOnly(['icons', 'foolish', 'effort'])")
     expect(firestore).toContain('exists(couplePath(d.picks.icons))')

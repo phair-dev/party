@@ -115,7 +115,7 @@ export default function Vote() {
 
   return (
     <Shell>
-      <p className="subtitle">One vote per person — make it count!</p>
+      <p className="subtitle">One vote per person — pick a different couple in each category.</p>
 
       <section className="card">
         <h2>Which couple are you?</h2>
@@ -143,20 +143,24 @@ export default function Vote() {
             <div className="options">
               {couples.map((c) => {
                 const self = c.id === meId
+                // A couple can only win one category per ballot, so lock ones picked elsewhere.
+                const usedIn = CATEGORIES.find((o) => o.key !== cat.key && picks[o.key] === c.id)
+                const locked = self || !!usedIn
                 return (
                   <label
                     key={c.id}
-                    className={`option ${picks[cat.key as CategoryKey] === c.id ? 'selected' : ''} ${self ? 'disabled' : ''}`}
+                    className={`option ${picks[cat.key as CategoryKey] === c.id ? 'selected' : ''} ${locked ? 'disabled' : ''}`}
                   >
                     <input
                       type="radio"
                       name={cat.key}
-                      disabled={self}
+                      disabled={locked}
                       checked={picks[cat.key as CategoryKey] === c.id}
                       onChange={() => setPicks((p) => ({ ...p, [cat.key]: c.id }))}
                     />
                     <CoupleLabel couple={c} />
                     {self && <em className="muted">that's you</em>}
+                    {usedIn && <em className="muted">already your {usedIn.title} pick</em>}
                   </label>
                 )
               })}

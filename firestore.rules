@@ -58,6 +58,9 @@ service cloud.firestore {
         && d.picks.icons != d.coupleId
         && d.picks.foolish != d.coupleId
         && d.picks.effort != d.coupleId
+        && d.picks.icons != d.picks.foolish
+        && d.picks.icons != d.picks.effort
+        && d.picks.foolish != d.picks.effort
         && exists(couplePath(d.picks.icons))
         && exists(couplePath(d.picks.foolish))
         && exists(couplePath(d.picks.effort))
