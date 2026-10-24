@@ -1,0 +1,96 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['loveaphair@gmail.com', 'fredalyssa@gmail.com'];
+    }
+
+    function contestState() {
+      return exists(/databases/$(database)/documents/config/contest)
+        ? get(/databases/$(database)/documents/config/contest).data.state
+        : 'registration';
+    }
+
+    function couplePath(id) {
+      return /databases/$(database)/documents/couples/$(id);
+    }
+
+    function slotPath(id) {
+      return /databases/$(database)/documents/slots/$(id);
+    }
+
+    // A ballot is only valid together with a slot claim (max 2 per couple)
+    // created in the same batch.
+    function claimsSlot(coupleId) {
+      return (existsAfter(slotPath(coupleId + '_1'))
+          && getAfter(slotPath(coupleId + '_1')).data.uid == request.auth.uid)
+        || (existsAfter(slotPath(coupleId + '_2'))
+          && getAfter(slotPath(coupleId + '_2')).data.uid == request.auth.uid);
+    }
+
+    function validBallot(d) {
+      return d.keys().hasOnly(['coupleId', 'picks', 'createdAt'])
+        && d.keys().hasAll(['coupleId', 'picks', 'createdAt'])
+        && d.createdAt == request.time
+        && d.coupleId is string
+        && exists(couplePath(d.coupleId))
+        && d.picks.keys().hasOnly(['icons', 'foolish', 'effort'])
+        && d.picks.keys().hasAll(['icons', 'foolish', 'effort'])
+        && d.picks.icons is string && d.picks.foolish is string && d.picks.effort is string
+        && d.picks.icons != d.coupleId
+        && d.picks.foolish != d.coupleId
+        && d.picks.effort != d.coupleId
+        && exists(couplePath(d.picks.icons))
+        && exists(couplePath(d.picks.foolish))
+        && exists(couplePath(d.picks.effort))
+        && claimsSlot(d.coupleId);
+    }
+
+    match /config/contest {
+      allow read: if signedIn();
+      allow write: if isAdmin()
+        && request.resource.data.keys().hasOnly(['state', 'tiebreaks'])
+        && request.resource.data.state in ['registration', 'voting', 'revealed']
+        && (!('tiebreaks' in request.resource.data)
+          || (request.resource.data.tiebreaks is map
+            && request.resource.data.tiebreaks.keys().hasOnly(['icons', 'foolish', 'effort'])));
+    }
+
+    match /couples/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /ballots/{uid} {
+      allow read: if isAdmin()
+        || (signedIn() && request.auth.uid == uid)
+        || (signedIn() && contestState() == 'revealed');
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && contestState() == 'voting'
+        && validBallot(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // slots/{coupleId}_{1|2}: create-only claims that cap ballots at 2 per couple.
+    match /slots/{slot} {
+      allow read: if isAdmin();
+      allow create: if signedIn()
+        && contestState() == 'voting'
+        && request.resource.data.keys().hasOnly(['uid', 'coupleId'])
+        && request.resource.data.uid == request.auth.uid
+        && slot in [request.resource.data.coupleId + '_1', request.resource.data.coupleId + '_2']
+        && existsAfter(/databases/$(database)/documents/ballots/$(request.auth.uid))
+        && getAfter(/databases/$(database)/documents/ballots/$(request.auth.uid)).data.coupleId
+          == request.resource.data.coupleId;
+      allow delete: if isAdmin();
+    }
+  }
+}
