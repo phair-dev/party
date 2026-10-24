@@ -109,6 +109,9 @@ export default function Admin() {
         <p className="muted">
           Registration: guests wait. Voting: ballots open. Revealed: the <a href="/winners">winners page</a> goes live.
         </p>
+        <p className="muted">
+          Game night: the <a href="/blank-slate">Blank Slate prompts</a> (admin sign-in required).
+        </p>
       </section>
 
       <AddCouple />

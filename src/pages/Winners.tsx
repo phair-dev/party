@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
 import { CATEGORIES, REVEAL_ORDER, type CategoryKey } from '../config'
 import { CoupleLabel } from '../components'
 import { podium, tally, type Podium } from '../tally'
 import { useBallots, useContest, useCouples, useUser } from '../hooks'
+import { FullscreenButton, StageNav, useStage } from '../stage'
 
 type Slide =
   | { kind: 'intro' }
@@ -20,8 +20,6 @@ const SLIDES: Slide[] = [
   { kind: 'recap' },
 ]
 
-const fullscreenSupported = () => 'requestFullscreen' in document.documentElement
-
 const titleOf = (key: CategoryKey) => CATEGORIES.find((c) => c.key === key)!
 
 export default function Winners() {
@@ -31,36 +29,7 @@ export default function Winners() {
   const revealed = state === 'revealed'
   const couples = useCouples(!!user)
   const ballots = useBallots(!!user && revealed)
-  const [step, setStep] = useState(0)
-  const [fullscreen, setFullscreen] = useState(false)
-  // Not available everywhere (e.g. iPhone Safari), so the button hides itself there.
-  const canFullscreen = fullscreenSupported()
-
-  const toggleFullscreen = () =>
-    (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(
-      console.error,
-    )
-
-  useEffect(() => {
-    const onChange = () => setFullscreen(!!document.fullscreenElement)
-    document.addEventListener('fullscreenchange', onChange)
-    return () => document.removeEventListener('fullscreenchange', onChange)
-  }, [])
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault()
-        setStep((s) => Math.min(s + 1, SLIDES.length - 1))
-      } else if (e.key === 'f' && fullscreenSupported()) {
-        toggleFullscreen()
-      } else if (e.key === 'ArrowLeft') {
-        setStep((s) => Math.max(s - 1, 0))
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  const { step, next, back, fullscreen, last } = useStage(SLIDES.length)
 
   if (!revealed) {
     return (
@@ -74,10 +43,9 @@ export default function Winners() {
   const standings = tally(ballots, couples)
   const podiumOf = (key: CategoryKey) => podium(standings[key], contest?.tiebreaks[key])
   const slide = SLIDES[step]
-  const last = step === SLIDES.length - 1
 
   return (
-    <main className="stage" onClick={() => setStep((s) => Math.min(s + 1, SLIDES.length - 1))}>
+    <main className="stage" onClick={next}>
       <div className="stage-body">
         {slide.kind === 'intro' && (
           <>
@@ -121,26 +89,9 @@ export default function Winners() {
           </>
         )}
 
-        <nav className="stage-nav" onClick={(e) => e.stopPropagation()}>
-          <button disabled={step === 0} onClick={() => setStep((s) => Math.max(s - 1, 0))}>
-            ← Back
-          </button>
-          <button disabled={last} onClick={() => setStep((s) => Math.min(s + 1, SLIDES.length - 1))}>
-            Continue →
-          </button>
-        </nav>
+        <StageNav step={step} last={last} back={back} next={next} />
       </div>
-      {canFullscreen && (
-        <button
-          className="small stage-fullscreen"
-          onClick={(e) => {
-            e.stopPropagation()
-            toggleFullscreen()
-          }}
-        >
-          {fullscreen ? 'Exit full screen' : 'Full screen'}
-        </button>
-      )}
+      <FullscreenButton fullscreen={fullscreen} />
     </main>
   )
 }
